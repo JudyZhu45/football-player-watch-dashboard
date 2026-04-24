@@ -20,12 +20,6 @@ importers:
       '@clerk/nextjs':
         specifier: ^7.2.5
         version: 7.2.5(next@15.5.15(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
-      '@football/types':
-        specifier: workspace:*
-        version: link:../../packages/types
-      '@football/utils':
-        specifier: workspace:*
-        version: link:../../packages/utils
       '@supabase/ssr':
         specifier: ^0.5.2
         version: 0.5.2(@supabase/supabase-js@2.104.1)
@@ -75,9 +69,6 @@ importers:
 
   apps/worker:
     dependencies:
-      '@football/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       '@supabase/supabase-js':
         specifier: ^2.49.8
         version: 2.104.1
