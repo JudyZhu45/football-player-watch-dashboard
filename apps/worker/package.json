@@ -8,7 +8,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@football/types": "workspace:*",
     "@supabase/supabase-js": "^2.49.8",
     "dotenv": "^17.4.2"
   },
