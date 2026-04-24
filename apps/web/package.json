@@ -9,8 +9,6 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.2.5",
-    "@football/types": "workspace:*",
-    "@football/utils": "workspace:*",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.8",
     "clsx": "^2.1.1",
