@@ -1,4 +1,4 @@
-import { fetchCompetitionMatches, FDCompetition, FDMatch, FDTeamRef } from '../lib/footballDataClient';
+import { fetchCompetitionMatches, fetchMatchDetail, FDCompetition, FDMatch, FDTeamRef } from '../lib/footballDataClient';
 import { logger } from '../lib/logger';
 import { createSupabaseAdmin } from '../lib/supabaseAdmin';
 import { getWorkerEnv } from '../lib/env';
@@ -13,8 +13,8 @@ export async function syncScheduledMatches(): Promise<void> {
   const { pollCompetitionCodes } = getWorkerEnv();
 
   const now = new Date();
-  const dateFrom = toDateStr(new Date(now.getTime() - 2 * 86_400_000)); // 2 days ago
-  const dateTo = toDateStr(new Date(now.getTime() + 7 * 86_400_000));   // 7 days ahead
+  const dateFrom = toDateStr(new Date(now.getTime() - 14 * 86_400_000)); // 14 days ago
+  const dateTo = toDateStr(new Date(now.getTime() + 7 * 86_400_000));    // 7 days ahead
 
   let requestCount = 0;
   let rowCount = 0;
@@ -205,6 +205,73 @@ export async function syncScheduledMatches(): Promise<void> {
       }
     }
 
+    // ── 8. For recently FINISHED matches with no events, fetch individual detail ─
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 86_400_000).toISOString();
+    const matchesWithNoEvents = new Set(matchUuidMap.keys());
+    for (const row of eventRows) {
+      // Remove match external IDs that already have events
+      for (const [extId, uuid] of matchUuidMap) {
+        if (uuid === row.match_id) matchesWithNoEvents.delete(extId);
+      }
+    }
+
+    const finishedNoEvents = Array.from(fetched)
+      .flatMap(({ matches }) => matches)
+      .filter(
+        (m) =>
+          m.status === 'FINISHED' &&
+          matchesWithNoEvents.has(m.id) &&
+          m.utcDate >= sevenDaysAgo,
+      )
+      .slice(0, 10); // cap at 10 detail calls per cycle
+
+    for (const m of finishedNoEvents) {
+      try {
+        const detail = await fetchMatchDetail(m.id);
+        requestCount++;
+        const matchId = matchUuidMap.get(m.id);
+        if (!matchId) continue;
+
+        const detailEvents: Record<string, unknown>[] = [];
+        for (const [i, goal] of (detail.goals ?? []).entries()) {
+          detailEvents.push({
+            match_id: matchId,
+            player_id: goal.scorer?.id ? (playerUuidMap.get(goal.scorer.id) ?? null) : null,
+            team_id: goal.team?.id ? (teamUuidMap.get(goal.team.id) ?? null) : null,
+            event_type: 'GOAL',
+            minute: goal.minute ?? null,
+            external_event_key: `${m.id}_goal_${i}`,
+            payload: goal,
+          });
+        }
+        for (const [i, booking] of (detail.bookings ?? []).entries()) {
+          detailEvents.push({
+            match_id: matchId,
+            player_id: booking.player?.id ? (playerUuidMap.get(booking.player.id) ?? null) : null,
+            team_id: booking.team?.id ? (teamUuidMap.get(booking.team.id) ?? null) : null,
+            event_type: booking.card,
+            minute: booking.minute ?? null,
+            external_event_key: `${m.id}_booking_${i}`,
+            payload: booking,
+          });
+        }
+        for (const [i, sub] of (detail.substitutions ?? []).entries()) {
+          detailEvents.push({
+            match_id: matchId,
+            player_id: sub.playerOut?.id ? (playerUuidMap.get(sub.playerOut.id) ?? null) : null,
+            team_id: sub.team?.id ? (teamUuidMap.get(sub.team.id) ?? null) : null,
+            event_type: 'SUBSTITUTION',
+            minute: sub.minute ?? null,
+            external_event_key: `${m.id}_sub_${i}`,
+            payload: sub,
+          });
+        }
+        if (detailEvents.length > 0) eventRows.push(...detailEvents);
+      } catch (err) {
+        logger.error(`fetchMatchDetail(${m.id}) failed`, err);
+      }
+    }
+
     if (eventRows.length > 0) {
       const { error: eventErr } = await supabase
         .from('match_events')
@@ -213,7 +280,7 @@ export async function syncScheduledMatches(): Promise<void> {
       rowCount += eventRows.length;
     }
 
-    logger.info(`syncScheduledMatches: ${matchUpsertRows.length} matches, ${eventRows.length} events`);
+    logger.info(`syncScheduledMatches: ${matchUpsertRows.length} matches, ${eventRows.length} events (${finishedNoEvents.length} detail fetches)`);
   } catch (err) {
     errorMessage = err instanceof Error ? err.message : String(err);
     logger.error('syncScheduledMatches failed', errorMessage);
