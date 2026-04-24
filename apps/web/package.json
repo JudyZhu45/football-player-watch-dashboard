@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.2.5",
     "@football/types": "workspace:*",
     "@football/utils": "workspace:*",
     "@supabase/ssr": "^0.5.2",
@@ -29,4 +30,3 @@
     "typescript": "^5.8.3"
   }
 }
-

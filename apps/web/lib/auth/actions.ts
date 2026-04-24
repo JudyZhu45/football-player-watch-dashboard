@@ -1,49 +1,38 @@
-"use server";
+'use server';
 
-import { redirect } from "next/navigation";
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
-import { createClient } from "../supabase/server";
+import { createAdminClient } from '../supabase/admin';
+import { getOrCreateProfileId } from './profile';
 
-export async function signIn(formData: FormData) {
-  const supabase = await createClient();
-  const email = String(formData.get("email") ?? "");
-  const password = String(formData.get("password") ?? "");
+export async function addFavoritePlayer(playerId: string) {
+  const profileId = await getOrCreateProfileId();
+  if (!profileId) redirect('/sign-in');
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const supabase = createAdminClient();
+  await supabase
+    .from('user_favorite_players')
+    .upsert(
+      { user_id: profileId, player_id: playerId },
+      { onConflict: 'user_id,player_id', ignoreDuplicates: true },
+    );
 
-  if (error) {
-    redirect(`/sign-in?error=${encodeURIComponent(error.message)}`);
-  }
-
-  redirect("/dashboard");
+  revalidatePath('/settings');
+  revalidatePath('/dashboard');
 }
 
-export async function signUp(formData: FormData) {
-  const supabase = await createClient();
-  const email = String(formData.get("email") ?? "");
-  const password = String(formData.get("password") ?? "");
-  const username = String(formData.get("username") ?? "");
+export async function removeFavoritePlayer(playerId: string) {
+  const profileId = await getOrCreateProfileId();
+  if (!profileId) redirect('/sign-in');
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        username
-      }
-    }
-  });
+  const supabase = createAdminClient();
+  await supabase
+    .from('user_favorite_players')
+    .delete()
+    .eq('user_id', profileId)
+    .eq('player_id', playerId);
 
-  if (error) {
-    redirect(`/sign-up?error=${encodeURIComponent(error.message)}`);
-  }
-
-  redirect("/dashboard");
+  revalidatePath('/settings');
+  revalidatePath('/dashboard');
 }
-
-export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  redirect("/");
-}
-

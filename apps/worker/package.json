@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "@football/types": "workspace:*",
-    "@supabase/supabase-js": "^2.49.8"
+    "@supabase/supabase-js": "^2.49.8",
+    "dotenv": "^17.4.2"
   },
   "devDependencies": {
     "@types/node": "^22.15.17",
@@ -17,4 +18,3 @@
     "typescript": "^5.8.3"
   }
 }
-
