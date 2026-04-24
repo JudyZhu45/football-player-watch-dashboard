@@ -1,6 +1,12 @@
 import { getWorkerEnv } from "./env";
 
-export async function fetchCompetitionMatches(code: string) {
+type CompetitionMatchesResponse = {
+  matches?: unknown[];
+};
+
+export async function fetchCompetitionMatches(
+  code: string
+): Promise<CompetitionMatchesResponse> {
   const env = getWorkerEnv();
   const response = await fetch(
     `https://api.football-data.org/v4/competitions/${code}/matches`,
@@ -15,6 +21,5 @@ export async function fetchCompetitionMatches(code: string) {
     throw new Error(`football-data.org request failed: ${response.status}`);
   }
 
-  return response.json();
+  return (await response.json()) as CompetitionMatchesResponse;
 }
-

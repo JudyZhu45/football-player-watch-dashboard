@@ -3,6 +3,12 @@ import { createServerClient } from "@supabase/ssr";
 
 import { getSupabaseEnv } from "./env";
 
+type CookieToSet = {
+  name: string;
+  value: string;
+  options: Record<string, unknown>;
+};
+
 export async function createClient() {
   const cookieStore = await cookies();
   const { url, anonKey } = getSupabaseEnv();
@@ -12,7 +18,7 @@ export async function createClient() {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: CookieToSet[]) {
         for (const cookie of cookiesToSet) {
           cookieStore.set(cookie.name, cookie.value, cookie.options);
         }
@@ -20,4 +26,3 @@ export async function createClient() {
     }
   });
 }
-
