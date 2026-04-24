@@ -10,7 +10,7 @@ COPY apps/worker/package.json ./apps/worker/
 COPY packages/ ./packages/
 
 # Install deps from root (resolves workspace packages)
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # Copy source and build
 COPY apps/worker/ ./apps/worker/
