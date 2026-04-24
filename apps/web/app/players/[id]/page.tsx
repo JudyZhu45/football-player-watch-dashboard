@@ -101,7 +101,9 @@ export default async function PlayerPage({ params }: Props) {
             Recent Events
           </h2>
           {events.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No events recorded yet.</p>
+            <p className="text-sm text-[var(--muted)]">
+              Events (goals, cards, subs) are recorded during live matches.
+            </p>
           ) : (
             <ul className="space-y-2">
               {events.map((ev) => {
