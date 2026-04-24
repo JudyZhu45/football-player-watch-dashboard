@@ -225,10 +225,18 @@ export async function syncScheduledMatches(): Promise<void> {
       )
       .slice(0, 10); // cap at 10 detail calls per cycle
 
-    for (const m of finishedNoEvents) {
+    for (const [idx, m] of finishedNoEvents.entries()) {
       try {
         const detail = await fetchMatchDetail(m.id);
         requestCount++;
+        if (idx === 0) {
+          logger.info(`match detail sample`, {
+            id: detail.id, status: detail.status,
+            goals: detail.goals?.length ?? 'undefined',
+            bookings: detail.bookings?.length ?? 'undefined',
+            subs: detail.substitutions?.length ?? 'undefined',
+          });
+        }
         const matchId = matchUuidMap.get(m.id);
         if (!matchId) continue;
 
