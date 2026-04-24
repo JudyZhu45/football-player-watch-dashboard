@@ -230,11 +230,14 @@ export async function syncScheduledMatches(): Promise<void> {
         const detail = await fetchMatchDetail(m.id);
         requestCount++;
         if (idx === 0) {
+          const raw = detail as unknown as Record<string, unknown>;
+          logger.info(`match detail keys: ${Object.keys(raw).join(', ')}`);
           logger.info(`match detail sample`, {
             id: detail.id, status: detail.status,
             goals: detail.goals?.length ?? 'undefined',
             bookings: detail.bookings?.length ?? 'undefined',
             subs: detail.substitutions?.length ?? 'undefined',
+            hasMatch: 'match' in raw,
           });
         }
         const matchId = matchUuidMap.get(m.id);
